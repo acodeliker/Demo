@@ -23,8 +23,17 @@ int main()
     //test2
     Foo2 foo{123, 321};
     cout << foo.x << " " << foo.y;
-    return 0;
+    
 
+    //test3
+    Foo3 foo1{123,456,789.0};  
+    Foo3 foo2{123,456};  
+    
+    cout << foo1.x << " " << foo1.y;  
+    cout << foo2.x << " " << foo2.y;  
+
+
+    
     getchar();
     return 0;
 }
