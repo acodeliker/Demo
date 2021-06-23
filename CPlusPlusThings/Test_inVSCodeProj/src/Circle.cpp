@@ -14,4 +14,6 @@ void Circle::getArea() {
     double ra = this->radium;
     res = ra * ra * Pi;
     std::cout << "The area of circle is " << res << std::endl;
+    std::cout << "=======================================" << std::endl;
+
 };
