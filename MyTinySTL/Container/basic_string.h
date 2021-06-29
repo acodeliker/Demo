@@ -6,10 +6,10 @@
 
 #include <iostream>
 
-#include "iterator.h"
-#include "memory.h"
-#include "functional.h"
-#include "exceptdef.h"
+#include "../Iterator/iterator.h"
+#include "../memory.h"
+#include "../Functor/functional.h"
+#include "../exceptdef.h"
 
 namespace mystl
 {

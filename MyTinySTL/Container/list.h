@@ -17,11 +17,11 @@
 
 #include <initializer_list>
 
-#include "iterator.h"
-#include "memory.h"
-#include "functional.h"
-#include "util.h"
-#include "exceptdef.h"
+#include "../Iterator/iterator.h"
+#include "../memory.h"
+#include "../Functor/functional.h"
+#include "../util.h"
+#include "../exceptdef.h"
 
 namespace mystl
 {

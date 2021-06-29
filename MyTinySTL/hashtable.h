@@ -5,8 +5,7 @@
 // hashtable : 哈希表，使用开链法处理冲突
 
 #include <initializer_list>
-
-#include "algo.h"
+//#include "algo.h"
 #include "functional.h"
 #include "memory.h"
 #include "vector.h"
@@ -459,13 +458,13 @@ static constexpr size_t ht_prime_list[] = {
 #endif
 
 // 找出最接近并大于等于 n 的那个质数
-inline size_t ht_next_prime(size_t n)
+/* inline size_t ht_next_prime(size_t n)
 {
   const size_t* first = ht_prime_list;
   const size_t* last = ht_prime_list + PRIME_NUM;
   const size_t* pos = mystl::lower_bound(first, last, n);
   return pos == last ? *(last - 1) : *pos;
-}
+} */
 
 // 模板类 hashtable
 // 参数一代表数据类型，参数二代表哈希函数，参数三代表键值相等的比较函数

@@ -1,33 +1,48 @@
-﻿#ifndef MYTINYSTL_SET_H_
-#define MYTINYSTL_SET_H_
+﻿#ifndef MYTINYSTL_MAP_H_
+#define MYTINYSTL_MAP_H_
 
-// 这个头文件包含两个模板类 set 和 multiset
-// set      : 集合，键值即实值，集合内元素会自动排序，键值不允许重复
-// multiset : 集合，键值即实值，集合内元素会自动排序，键值允许重复
+// 这个头文件包含了两个模板类 map 和 multimap
+// map      : 映射，元素具有键值和实值，会根据键值大小自动排序，键值不允许重复
+// multimap : 映射，元素具有键值和实值，会根据键值大小自动排序，键值允许重复
 
 // notes:
 //
 // 异常保证：
-// mystl::set<Key> / mystl::multiset<Key> 满足基本异常保证，对以下等函数做强异常安全保证：
+// mystl::map<Key, T> / mystl::multimap<Key, T> 满足基本异常保证，对以下等函数做强异常安全保证：
 //   * emplace
 //   * emplace_hint
 //   * insert
 
-#include "rb_tree.h"
+#include "../rb_tree.h"
 
 namespace mystl
 {
 
-// 模板类 set，键值不允许重复
-// 参数一代表键值类型，参数二代表键值比较方式，缺省使用 mystl::less 
-template <class Key, class Compare = mystl::less<Key>>
-class set
+// 模板类 map，键值不允许重复
+// 参数一代表键值类型，参数二代表实值类型，参数三代表键值的比较方式，缺省使用 mystl::less
+template <class Key, class T, class Compare = mystl::less<Key>>
+class map
 {
 public:
-  typedef Key        key_type;
-  typedef Key        value_type;
-  typedef Compare    key_compare;
-  typedef Compare    value_compare;
+  // map 的嵌套型别定义
+  typedef Key                        key_type;
+  typedef T                          mapped_type;
+  typedef mystl::pair<const Key, T>  value_type;
+  typedef Compare                    key_compare;
+
+  // 定义一个 functor，用来进行元素比较
+  class value_compare : public binary_function <value_type, value_type, bool>
+  {
+    friend class map<Key, T, Compare>;
+  private:
+    Compare comp;
+    value_compare(Compare c) : comp(c) {}
+  public:
+    bool operator()(const value_type& lhs, const value_type& rhs) const
+    {
+      return comp(lhs.first, rhs.first);  // 比较键值的大小
+    }
+  };
 
 private:
   // 以 mystl::rb_tree 作为底层机制
@@ -35,52 +50,55 @@ private:
   base_type tree_;
 
 public:
-  // 使用 rb_tree 定义的型别
+  // 使用 rb_tree 的型别
   typedef typename base_type::node_type              node_type;
-  typedef typename base_type::const_pointer          pointer;
+  typedef typename base_type::pointer                pointer;
   typedef typename base_type::const_pointer          const_pointer;
-  typedef typename base_type::const_reference        reference;
+  typedef typename base_type::reference              reference;
   typedef typename base_type::const_reference        const_reference;
-  typedef typename base_type::const_iterator         iterator;
+  typedef typename base_type::iterator               iterator;
   typedef typename base_type::const_iterator         const_iterator;
-  typedef typename base_type::const_reverse_iterator reverse_iterator;
+  typedef typename base_type::reverse_iterator       reverse_iterator;
   typedef typename base_type::const_reverse_iterator const_reverse_iterator;
   typedef typename base_type::size_type              size_type;
   typedef typename base_type::difference_type        difference_type;
   typedef typename base_type::allocator_type         allocator_type;
 
 public:
-  // 构造、复制、移动函数
-  set() = default;
+  // 构造、复制、移动、赋值函数
+
+  map() = default;
 
   template <class InputIterator>
-  set(InputIterator first, InputIterator last) 
-    :tree_() 
+  map(InputIterator first, InputIterator last)
+    :tree_()
   { tree_.insert_unique(first, last); }
-  set(std::initializer_list<value_type> ilist)
+
+  map(std::initializer_list<value_type> ilist) 
     :tree_()
   { tree_.insert_unique(ilist.begin(), ilist.end()); }
 
-  set(const set& rhs) 
-    :tree_(rhs.tree_)
+  map(const map& rhs) 
+    :tree_(rhs.tree_) 
   {
   }
-  set(set&& rhs) noexcept
+  map(map&& rhs) noexcept
     :tree_(mystl::move(rhs.tree_))
   {
   }
 
-  set& operator=(const set& rhs)
-  {
-    tree_ = rhs.tree_;
+  map& operator=(const map& rhs)
+  { 
+    tree_ = rhs.tree_; 
     return *this;
   }
-  set& operator=(set&& rhs)
+  map& operator=(map&& rhs)
   { 
-    tree_ = mystl::move(rhs.tree_); 
-    return *this; 
+    tree_ = mystl::move(rhs.tree_);
+    return *this;
   }
-  set& operator=(std::initializer_list<value_type> ilist)
+
+  map& operator=(std::initializer_list<value_type> ilist)
   {
     tree_.clear();
     tree_.insert_unique(ilist.begin(), ilist.end());
@@ -89,9 +107,9 @@ public:
 
   // 相关接口
 
-  key_compare      key_comp()      const { return tree_.key_comp(); }
-  value_compare    value_comp()    const { return tree_.key_comp(); }
-  allocator_type   get_allocator() const { return tree_.get_allocator(); }
+  key_compare            key_comp()      const { return tree_.key_comp(); }
+  value_compare          value_comp()    const { return value_compare(tree_.key_comp()); }
+  allocator_type         get_allocator() const { return tree_.get_allocator(); }
 
   // 迭代器相关
 
@@ -127,7 +145,44 @@ public:
   size_type              size()     const noexcept { return tree_.size(); }
   size_type              max_size() const noexcept { return tree_.max_size(); }
 
-  // 插入删除操作
+  // 访问元素相关
+
+  // 若键值不存在，at 会抛出一个异常
+  mapped_type& at(const key_type& key)
+  {
+    iterator it = lower_bound(key);
+    // it->first >= key
+    THROW_OUT_OF_RANGE_IF(it == end() || key_comp()(it->first, key),
+                          "map<Key, T> no such element exists");
+    return it->second;
+  }
+  const mapped_type& at(const key_type& key) const
+  {
+    const_iterator it = lower_bound(key);
+    // it->first >= key
+    THROW_OUT_OF_RANGE_IF(it == end() || key_comp()(it->first, key),
+                          "map<Key, T> no such element exists");
+    return it->second;
+  }
+
+  mapped_type& operator[](const key_type& key)
+  {
+    iterator it = lower_bound(key);
+    // it->first >= key
+    if (it == end() || key_comp()(key, it->first))
+      it = emplace_hint(it, key, T{});
+    return it->second;
+  }
+  mapped_type& operator[](key_type&& key)
+  {
+    iterator it = lower_bound(key);
+    // it->first >= key
+    if (it == end() || key_comp()(key, it->first))
+      it = emplace_hint(it, mystl::move(key), T{});
+    return it->second;
+  }
+
+  // 插入删除相关
 
   template <class ...Args>
   pair<iterator, bool> emplace(Args&& ...args)
@@ -169,9 +224,9 @@ public:
   size_type erase(const key_type& key)           { return tree_.erase_unique(key); }
   void      erase(iterator first, iterator last) { tree_.erase(first, last); }
 
-  void      clear() { tree_.clear(); }
+  void      clear()                              { tree_.clear(); }
 
-  // set 相关操作
+  // map 相关操作
 
   iterator       find(const key_type& key)              { return tree_.find(key); }
   const_iterator find(const key_type& key)        const { return tree_.find(key); }
@@ -185,93 +240,108 @@ public:
   const_iterator upper_bound(const key_type& key) const { return tree_.upper_bound(key); }
 
   pair<iterator, iterator>
-    equal_range(const key_type& key)
+    equal_range(const key_type& key) 
   { return tree_.equal_range_unique(key); }
 
   pair<const_iterator, const_iterator>
-    equal_range(const key_type& key) const
+    equal_range(const key_type& key) const 
   { return tree_.equal_range_unique(key); }
 
-  void swap(set& rhs) noexcept
+  void           swap(map& rhs) noexcept
   { tree_.swap(rhs.tree_); }
 
 public:
-  friend bool operator==(const set& lhs, const set& rhs) { return lhs.tree_ == rhs.tree_; }
-  friend bool operator< (const set& lhs, const set& rhs) { return lhs.tree_ <  rhs.tree_; }
+  friend bool operator==(const map& lhs, const map& rhs) { return lhs.tree_ == rhs.tree_; }
+  friend bool operator< (const map& lhs, const map& rhs) { return lhs.tree_ <  rhs.tree_; }
 };
 
 // 重载比较操作符
-template <class Key, class Compare>
-bool operator==(const set<Key, Compare>& lhs, const set<Key, Compare>& rhs)
+template <class Key, class T, class Compare>
+bool operator==(const map<Key, T, Compare>& lhs, const map<Key, T, Compare>& rhs)
 {
   return lhs == rhs;
 }
 
-template <class Key, class Compare>
-bool operator<(const set<Key, Compare>& lhs, const set<Key, Compare>& rhs)
+template <class Key, class T, class Compare>
+bool operator<(const map<Key, T, Compare>& lhs, const map<Key, T, Compare>& rhs)
 {
   return lhs < rhs;
 }
 
-template <class Key, class Compare>
-bool operator!=(const set<Key, Compare>& lhs, const set<Key, Compare>& rhs)
+template <class Key, class T, class Compare>
+bool operator!=(const map<Key, T, Compare>& lhs, const map<Key, T, Compare>& rhs)
 {
   return !(lhs == rhs);
 }
 
-template <class Key, class Compare>
-bool operator>(const set<Key, Compare>& lhs, const set<Key, Compare>& rhs)
+template <class Key, class T, class Compare>
+bool operator>(const map<Key, T, Compare>& lhs, const map<Key, T, Compare>& rhs)
 {
   return rhs < lhs;
 }
 
-template <class Key, class Compare>
-bool operator<=(const set<Key, Compare>& lhs, const set<Key, Compare>& rhs)
+template <class Key, class T, class Compare>
+bool operator<=(const map<Key, T, Compare>& lhs, const map<Key, T, Compare>& rhs)
 {
   return !(rhs < lhs);
 }
 
-template <class Key, class Compare>
-bool operator>=(const set<Key, Compare>& lhs, const set<Key, Compare>& rhs)
+template <class Key, class T, class Compare>
+bool operator>=(const map<Key, T, Compare>& lhs, const map<Key, T, Compare>& rhs)
 {
   return !(lhs < rhs);
 }
 
 // 重载 mystl 的 swap
-template <class Key, class Compare>
-void swap(set<Key, Compare>& lhs, set<Key, Compare>& rhs) noexcept
+template <class Key, class T, class Compare>
+void swap(map<Key, T, Compare>& lhs, map<Key, T, Compare>& rhs) noexcept
 {
   lhs.swap(rhs);
 }
 
 /*****************************************************************************************/
 
-// 模板类 multiset，键值允许重复
-// 参数一代表键值类型，参数二代表键值比较方式，缺省使用 mystl::less 
-template <class Key, class Compare = mystl::less<Key>>
-class multiset
+// 模板类 multimap，键值允许重复
+// 参数一代表键值类型，参数二代表实值类型，参数三代表键值的比较方式，缺省使用 mystl::less
+template <class Key, class T, class Compare = mystl::less<Key>>
+class multimap
 {
 public:
-  typedef Key        key_type;
-  typedef Key        value_type;
-  typedef Compare    key_compare;
-  typedef Compare    value_compare;
+  // multimap 的型别定义
+  typedef Key                        key_type;
+  typedef T                          mapped_type;
+  typedef mystl::pair<const Key, T>  value_type;
+  typedef Compare                    key_compare;
+
+  // 定义一个 functor，用来进行元素比较
+  class value_compare : public binary_function <value_type, value_type, bool>
+  {
+    friend class multimap<Key, T, Compare>;
+  private:
+    Compare comp;
+    value_compare(Compare c) : comp(c) {}
+  public:
+    bool operator()(const value_type& lhs, const value_type& rhs) const
+    {
+      return comp(lhs.first, rhs.first);
+    }
+  };
 
 private:
-  // 以 mystl::rb_tree 作为底层机制
+  // 用 mystl::rb_tree 作为底层机制
   typedef mystl::rb_tree<value_type, key_compare>  base_type;
-  base_type tree_;  // 以 rb_tree 表现 multiset
+  base_type tree_;
 
 public:
-  // 使用 rb_tree 定义的型别
+  // 使用 rb_tree 的型别
   typedef typename base_type::node_type              node_type;
-  typedef typename base_type::const_pointer          pointer;
+  typedef typename base_type::pointer                pointer;
   typedef typename base_type::const_pointer          const_pointer;
-  typedef typename base_type::const_reference        reference;
+  typedef typename base_type::reference              reference;
   typedef typename base_type::const_reference        const_reference;
-  typedef typename base_type::const_iterator         iterator;
+  typedef typename base_type::iterator               iterator;
   typedef typename base_type::const_iterator         const_iterator;
-  typedef typename base_type::const_reverse_iterator reverse_iterator;
+  typedef typename base_type::reverse_iterator       reverse_iterator;
   typedef typename base_type::const_reverse_iterator const_reverse_iterator;
   typedef typename base_type::size_type              size_type;
   typedef typename base_type::difference_type        difference_type;
@@ -279,36 +349,38 @@ public:
 
 public:
   // 构造、复制、移动函数
-  multiset() = default;
+
+  multimap() = default;
 
   template <class InputIterator>
-  multiset(InputIterator first, InputIterator last) 
+  multimap(InputIterator first, InputIterator last) 
     :tree_() 
   { tree_.insert_multi(first, last); }
-  multiset(std::initializer_list<value_type> ilist)
+  multimap(std::initializer_list<value_type> ilist) 
     :tree_() 
   { tree_.insert_multi(ilist.begin(), ilist.end()); }
 
-  multiset(const multiset& rhs)
+  multimap(const multimap& rhs)
     :tree_(rhs.tree_)
   {
   }
-  multiset(multiset&& rhs) noexcept
+  multimap(multimap&& rhs) noexcept
     :tree_(mystl::move(rhs.tree_))
   {
   }
 
-  multiset& operator=(const multiset& rhs) 
+  multimap& operator=(const multimap& rhs) 
   { 
-    tree_ = rhs.tree_;
+    tree_ = rhs.tree_; 
     return *this; 
   }
-  multiset& operator=(multiset&& rhs)
-  {
+  multimap& operator=(multimap&& rhs) 
+  { 
     tree_ = mystl::move(rhs.tree_);
     return *this; 
   }
-  multiset& operator=(std::initializer_list<value_type> ilist)
+
+  multimap& operator=(std::initializer_list<value_type> ilist)
   {
     tree_.clear();
     tree_.insert_multi(ilist.begin(), ilist.end());
@@ -317,9 +389,9 @@ public:
 
   // 相关接口
 
-  key_compare      key_comp()      const { return tree_.key_comp(); }
-  value_compare    value_comp()    const { return tree_.key_comp(); }
-  allocator_type   get_allocator() const { return tree_.get_allocator(); }
+  key_compare            key_comp()      const { return tree_.key_comp(); }
+  value_compare          value_comp()    const { return value_compare(tree_.key_comp()); }
+  allocator_type         get_allocator() const { return tree_.get_allocator(); }
 
   // 迭代器相关
 
@@ -399,7 +471,7 @@ public:
 
   void           clear() { tree_.clear(); }
 
-  // multiset 相关操作
+  // multimap 相关操作
 
   iterator       find(const key_type& key)              { return tree_.find(key); }
   const_iterator find(const key_type& key)        const { return tree_.find(key); }
@@ -412,66 +484,66 @@ public:
   iterator       upper_bound(const key_type& key)       { return tree_.upper_bound(key); }
   const_iterator upper_bound(const key_type& key) const { return tree_.upper_bound(key); }
 
-  pair<iterator, iterator>
+  pair<iterator, iterator> 
     equal_range(const key_type& key)
   { return tree_.equal_range_multi(key); }
 
   pair<const_iterator, const_iterator>
-    equal_range(const key_type& key) const
+    equal_range(const key_type& key) const 
   { return tree_.equal_range_multi(key); }
 
-  void swap(multiset& rhs) noexcept
+  void swap(multimap& rhs) noexcept
   { tree_.swap(rhs.tree_); }
 
 public:
-  friend bool operator==(const multiset& lhs, const multiset& rhs) { return lhs.tree_ == rhs.tree_; }
-  friend bool operator< (const multiset& lhs, const multiset& rhs) { return lhs.tree_ <  rhs.tree_; }
+  friend bool operator==(const multimap& lhs, const multimap& rhs) { return lhs.tree_ == rhs.tree_; }
+  friend bool operator< (const multimap& lhs, const multimap& rhs) { return lhs.tree_ <  rhs.tree_; }
 };
 
 // 重载比较操作符
-template <class Key, class Compare>
-bool operator==(const multiset<Key, Compare>& lhs, const multiset<Key, Compare>& rhs)
+template <class Key, class T, class Compare>
+bool operator==(const multimap<Key, T, Compare>& lhs, const multimap<Key, T, Compare>& rhs)
 {
   return lhs == rhs;
 }
 
-template <class Key, class Compare>
-bool operator<(const multiset<Key, Compare>& lhs, const multiset<Key, Compare>& rhs)
+template <class Key, class T, class Compare>
+bool operator<(const multimap<Key, T, Compare>& lhs, const multimap<Key, T, Compare>& rhs)
 {
   return lhs < rhs;
 }
 
-template <class Key, class Compare>
-bool operator!=(const multiset<Key, Compare>& lhs, const multiset<Key, Compare>& rhs)
+template <class Key, class T, class Compare>
+bool operator!=(const multimap<Key, T, Compare>& lhs, const multimap<Key, T, Compare>& rhs)
 {
   return !(lhs == rhs);
 }
 
-template <class Key, class Compare>
-bool operator>(const multiset<Key, Compare>& lhs, const multiset<Key, Compare>& rhs)
+template <class Key, class T, class Compare>
+bool operator>(const multimap<Key, T, Compare>& lhs, const multimap<Key, T, Compare>& rhs)
 {
   return rhs < lhs;
 }
 
-template <class Key, class Compare>
-bool operator<=(const multiset<Key, Compare>& lhs, const multiset<Key, Compare>& rhs)
+template <class Key, class T, class Compare>
+bool operator<=(const multimap<Key, T, Compare>& lhs, const multimap<Key, T, Compare>& rhs)
 {
   return !(rhs < lhs);
 }
 
-template <class Key, class Compare>
-bool operator>=(const multiset<Key, Compare>& lhs, const multiset<Key, Compare>& rhs)
+template <class Key, class T, class Compare>
+bool operator>=(const multimap<Key, T, Compare>& lhs, const multimap<Key, T, Compare>& rhs)
 {
   return !(lhs < rhs);
 }
 
 // 重载 mystl 的 swap
-template <class Key, class Compare>
-void swap(multiset<Key, Compare>& lhs, multiset<Key, Compare>& rhs) noexcept
+template <class Key, class T, class Compare>
+void swap(multimap<Key, T, Compare>& lhs, multimap<Key, T, Compare>& rhs) noexcept
 {
   lhs.swap(rhs);
 }
 
 } // namespace mystl
-#endif // !MYTINYSTL_SET_H_
+#endif // !MYTINYSTL_MAP_H_
 
