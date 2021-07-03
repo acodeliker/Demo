@@ -2,15 +2,15 @@
 #define MYTINYSTL_MEMORY_H_
 
 // 这个头文件负责更高级的动态内存管理
-// 包含一些基本函数、空间配置器、未初始化的储存空间管理，以及一个模板类 auto_ptr
+// 包含一些基本函数、空间配置器、未初始化的储存空间管理，以及一个模板类 auto_ptr, shared_ptr
 
 #include <cstddef>
 #include <cstdlib>
 #include <climits>
 
-#include "algobase.h"
-#include "allocator.h"
-#include "construct.h"
+#include "./Algorithms/algobase.h"
+#include "./Allocator/allocator.h"
+#include "./Allocator/construct.h"
 #include "uninitialized.h"
 
 namespace mystl
@@ -201,6 +201,40 @@ public:
       m_ptr = p;
     }
   }
+};
+
+template <typename T>
+class shared_ptr {
+public:
+  shared_ptr(T* p) : count(new int(1)), _ptr(p) {}//构造函数，初始化
+  shared_ptr(shared_ptr<T>& other) : count(&(++*other.count)), _ptr(other._ptr) {}//拷贝构造函数，增加被拷贝类的引用计数
+  
+  T* operator->() { return _ptr; }
+  T& operator*() { return *_ptr; }
+  shared_ptr<T>& operator=(shared_ptr<T>& other)
+  {
+      ++*other.count;//引用计数加1
+      if (this->_ptr && 0 == --*this->count)
+      {
+          delete count;
+          delete _ptr;
+      }
+      this->_ptr = other._ptr;//改变指针指向
+      this->count = other.count;//将引用计数改为等号右边的对象的引用计数
+      return *this;
+  }
+  ~shared_ptr()
+  {
+      if (--*count == 0)
+      {
+          delete count;
+          delete _ptr;
+      }
+  }
+  int getRef() { return *count; }//获取引用计数
+private:
+    int* count;//引用计数
+    T* _ptr; 
 };
 
 } // namespace mystl

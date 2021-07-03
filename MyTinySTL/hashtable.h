@@ -6,9 +6,9 @@
 
 #include <initializer_list>
 //#include "algo.h"
-#include "functional.h"
+#include "./Functor/functional.h"
 #include "memory.h"
-#include "vector.h"
+#include "./Container/vector.h"
 #include "util.h"
 #include "exceptdef.h"
 

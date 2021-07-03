@@ -7,8 +7,8 @@
 
 #include <new>
 
-#include "type_traits.h"
-#include "iterator.h"
+#include "../type_traits.h"
+#include "../Iterator/iterator.h"
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -23,7 +23,8 @@ namespace mystl
 template <class Ty>
 void construct(Ty* ptr)
 {
-  ::new ((void*)ptr) Ty();
+  ::new ((void*)ptr) Ty(); // ::new ((dynamic_cast<void*>)ptr) Ty();
+
 }
 
 template <class Ty1, class Ty2>

@@ -5,7 +5,7 @@
 // 所有函数都要求序列有序
 
 #include "algobase.h"
-#include "iterator.h"
+#include "../Iterator/iterator.h"
 
 namespace mystl
 {
