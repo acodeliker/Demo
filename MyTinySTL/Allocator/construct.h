@@ -10,10 +10,6 @@
 #include "../type_traits.h"
 #include "../Iterator/iterator.h"
 
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4100)  // unused parameter
-#endif // _MSC_VER
 
 namespace mystl
 {
@@ -23,8 +19,7 @@ namespace mystl
 template <class Ty>
 void construct(Ty* ptr)
 {
-  ::new ((void*)ptr) Ty(); // ::new ((dynamic_cast<void*>)ptr) Ty();
-
+  ::new ((void*)ptr) Ty(); // ::new (dynamic_cast<void*>(ptr)) Ty();
 }
 
 template <class Ty1, class Ty2>
@@ -77,10 +72,6 @@ void destroy(ForwardIter first, ForwardIter last)
 }
 
 } // namespace mystl
-
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif // _MSC_VER
 
 #endif // !MYTINYSTL_CONSTRUCT_H_
 
