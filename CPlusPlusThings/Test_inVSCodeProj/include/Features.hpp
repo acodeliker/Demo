@@ -122,6 +122,21 @@ public:
  **/
 
 /*
+    final新增两种功能：(1)、禁止基类被继承，(2)、禁止虚函数被重写；		
+*/
+//1)
+struct Base1 final {};
+//struct D : Base1 {}; // error
+
+//2)
+struct Base2 {
+    virtual void vfun() final {} 
+};
+struct D2 : Base2 {
+    // void vfun() {} // error
+};
+
+/*
     override用于明确要重写父类的虚函数上，
 		相当于告诉编译器这个函数就是要重写父类虚函数这样一个意图，让编译器帮忙检查, 没有这个关键字，编译器是不会帮你检查
 */
@@ -135,15 +150,6 @@ struct De : Base {
     virtual void vfun(float) override {}
 
 };
-
-/*
-    final新增两种功能：(1)、禁止基类被继承，(2)、禁止虚函数被重写；		
-*/
-//1
-struct Base1 final {};
-//struct D : Base1 {}; // error
-
-//2
 
 /*
     i. 由于c++中，如果你自定义了这5种函数，编译器就不会再为你生成默认的相关函数，
@@ -177,5 +183,7 @@ public:
 
 
 /////////////////////////////////////////////////////////////////////////////////
+
+
 
 #endif
