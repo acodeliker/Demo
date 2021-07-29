@@ -1,0 +1,28 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "cppbuild",
+			"label": "C/C++: g++ build active file",
+			"command": "/usr/bin/g++-9",
+			"args": [
+				"-g",
+				"${workspaceFolder}/CPlusPlusThings/Test_inVSCodeProj/src/*.cpp",
+				"-I",
+				"${workspaceFolder}/CPlusPlusThings/Test_inVSCodeProj/include/",
+				"-pthread",
+				"-std=c++17",
+				"-o",
+				"${workspaceFolder}/CPlusPlusThings/Test_inVSCodeProj/bin/main",
+			],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": "build",
+			"detail": "compiler: /usr/bin/gcc9"
+		}
+	]
+}

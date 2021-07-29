@@ -5,7 +5,13 @@
 #include <iostream>
 using namespace std;
 
-/**
+
+
+////////////////////////////////////////////////////
+/** 
+*   created on 2021.7.25
+*   @ref:https://developer.aliyun.com/article/584964
+*
 *	C++线程和基础同步原语
 *   Thread
 **/
@@ -20,15 +26,76 @@ void run(int n)
         cout << "thread" << n << '\n';
     }
 }
+
+#include <future>
+
 int main()
-{
-    thread t1(run, 1);
+{   
+    // 这里开启两个线程
+    /* thread t1(run, 1); // 第二个参数表示函数run里的参数（实参到形参的过程）
     thread t2(run, 2);
     t1.join();
-    t2.join();
-}
+    t2.join(); */
+    // 很明显t1t2执行顺序会相互影响（线程加塞）
 
-// 改进
+    /**************************/
+    // a. 
+    
+    /**************************/
+    // b. 
+    void run3();
+    vector<thread> threads;
+    for(int i = 0; i < 20; i ++ ) {
+        threads.emplace_back(run3);
+    }
+    for (auto& t: threads) {
+        t.join();
+    }
+    /* 
+        try_to_lock在构造完成后，会使用owns_lock()检查是否实际持有这把锁，它一定持有该mutex，但未必持有这把锁。
+        本例中，如果持有锁打印“*”号，不持有则打印“x”号。那么启动50个线程运行时，大多数情况下都持有锁，但是也存在打印“x”号的情况。
+    */
+
+
+    /**************************/
+    // c. 
+    void runa();
+    void runb();
+    thread t3(runa);
+    thread t4(runb);
+    t3.join();
+    t4.join();
+
+
+    /**************************/
+    
+    // 质数判定服务
+    // 11首先将判定服务置于一独立线程中，
+    // 22然后利用request方法将一个整数传入质数判定服务，返回一个future，即判断结果是否为质数
+    // 33在主线程中打印。44最后需要退出程序，即发送0至request中，具体如下所示。
+    void prime_service();
+    thread t(prime_service); // 11
+
+    int n0 = 13524415;
+    int n1 = 12343533;
+    
+    future<bool> request(int);
+    future<bool> r0 = request(n0);
+    future<bool> r1 = request(n1);
+
+    // 33
+    cout << n0 << ":" << boolalpha << r0.get() << endl; 
+    cout << n0 << ":" << boolalpha << r0.get() << endl;
+
+    // 44
+    request(0);
+    t.join();
+
+    return 0;
+}
+#include <vector>
+
+// 改进（添加基础同步原语），如
 // a.加入mutex
 #include <mutex>
 
@@ -60,7 +127,6 @@ void run3() {
     unique_lock<mutex> ulck(m, try_to_lock);
     cout << (ulck.owns_lock() ? '*' : 'x');
 }
-#include <vector>
 
 // c.条件变量是线程间的通知机制。将通过以下示例进行讲解：
 
@@ -72,33 +138,85 @@ condition_variable cv;
 void runa() {
     unique_lock<mutex> ul(mtx);
     cout << "Waiting" << endl;  
-    cv.wait(ul)
-
+    cv.wait(ul);
+    cout << "Wake up" << endl;
 }
 
-int main3()
+void runb() {
 {
+    lock_guard<mutex> ul(mtx);
+    cout << "Notify" << endl;
+}
+    cv.notify_one();
+}
 
-    // 改进b.
-    vector<thread> threads;
-    for(int i = 0; i < 20; i ++ ) {
-        threads.emplace_back(run3);
-    }
-    for (auto& t: threads) {
-        t.join();
-    }
-    /* 
-        try_to_lock在构造完成后，会使用owns_lock()检查是否实际持有这把锁，它一定持有该mutex，但未必持有这把锁。
-        本例中，如果持有锁打印“*”号，不持有则打印“x”号。那么启动50个线程运行时，大多数情况下都持有锁，但是也存在打印“x”号的情况。
-    */
+// d. Semaphore
+// Condition variable的一个用法是实现信号量。信号量（semaphore）是一种同步机制，但在C++11中并没有原生提供该机制，那么就需要自己去实现。
 
 
+/*******************************************************************/
+// 高级同步原语：future (构造方式：async/packaged_task/promise
 
+// 有时某项工作很早就可以开始做（前置条件都已完备），而等待这件工作结果的任务在非常靠后的位置，这时候就需要async。
+// 换言之，如果可以尽早开始做一件事，就让其在后台运行即可，或快或慢都可以，只需在需要结果的时候运行完成就好。例如：
 
+int FinalAns() {
+    cout << __func__ << " is running" << endl;
+
+    this_thread::sleep_for(chrono::seconds(1));
+
+    cout << "the ans is ready." << endl;
+    return 42;
+}
+
+int main3() {
+    future<int> lazyAns = async(launch::async, FinalAns);
+    this_thread::sleep_for(chrono::microseconds(100));
+    cout << __func__ << " is running." << endl;
+    cout << lazyAns.get() << endl;
 
     return 0;
 }
 
+
+/*******************************************************************/
+// 质数判定服务
+
+#include <deque>
+deque<tuple<promise<bool>, int>> reqs;
+condition_variable cv1;
+
+void prime_service() {
+    while (1)
+    {
+        /* code */
+        unique_lock<mutex> lck(mtx);
+        for(; reqs.empty(); ) {
+            cv1.wait(lck);
+        }
+        promise<bool> res;
+        int n = 0;
+
+        tie(res, n) = move(reqs.front());
+        reqs.pop_front();
+        if (n == 0) break;
+        res.set_value(is_prime(n));
+    }
+    
+}
+
+future<bool> request(int x) {
+    promise<bool> pm;
+    future<bool> res = pm.get_future();
+    { 
+        lock_guard<mutex> lck(mtx);
+        reqs.emplace_back(move(pm), x);
+    }
+
+    cv.notify_one();
+
+    return res;
+}
 ////////////////////////////////////////////////////////////
 
 /*
@@ -146,9 +264,9 @@ int main2()
 
     auto d = {1, 2}; // OK：d 的类型是 std::initializer_list<int>
     auto n = {5};    // OK：n 的类型是 std::initializer_list<int>
-                     //  auto e{1, 2};    // C++17 起错误，之前是 std::initializer_list<int>
+    //  auto e{1, 2};    // C++17 起错误，之前是 std::initializer_list<int>
     auto m{5};       // OK：DR N3922 起 m 的类型是 int，之前是 initializer_list<int>
-                     //  decltype(auto) z = { 1, 2 } // 错误：{1, 2} 不是表达式
+    //  decltype(auto) z = { 1, 2 } // 错误：{1, 2} 不是表达式
 
     // auto 常用于无名类型，例如 lambda 表达式的类型
     auto lambda = [](int x)
@@ -156,8 +274,13 @@ int main2()
 
     //  auto int x; // 于 C++98 合法，C++11 起错误
     //  auto x;     // 于 C 合法，于 C++ 错误
+
+
+    return 0;
 }
 
+
+///////////////////////////////////////////////////////////////////////
 
 double Foo3_1::z = 1.0;
 int main1()
@@ -168,7 +291,7 @@ int main1()
     Circle c1(r);
     c1.getArea();
 
-    /////////////////////////////////////////////////////////////////////
+    /************************************************************************************************/
     //test1
     Foo1 a1(123); //调用Foo(int)构造函数初始化
     //Foo1 a2 = 123; //error Foo的拷贝构造函数声明为私有的，该处的初始化方式是隐式调用Foo(int)构造函数生成一个临时的匿名对象，再调用拷贝构造函数完成初始化
@@ -211,7 +334,7 @@ int main1()
         Foo(int x, int y, double z)
         a.x = 1, a.y = 2
     */
-    /////////////////////////////////////////////////////////////////////
+    /************************************************************************************************/
 
     /**
      * created in 2021.7.21
@@ -223,7 +346,7 @@ int main1()
     using PF = int (*)(int *, int);
     //    PF  f1(int);    // 返回值是个函数指针
 
-    //////////////////////////////////////////////////////////////////////
+    /************************************************************************************************/
 
     getchar();
     return 0;

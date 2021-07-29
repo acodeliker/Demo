@@ -7,7 +7,7 @@
                 "/usr/local/lib/**"
             ],
             "defines": [],
-            "compilerPath": "/usr/bin/gcc9",
+            "compilerPath": "/usr/bin/gcc-9",
             "cStandard": "gnu11",
             "cppStandard": "c++17",
             "intelliSenseMode": "linux-gcc-x64"
