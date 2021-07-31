@@ -5,7 +5,43 @@
 #include <iostream>
 using namespace std;
 
+/////////////////////////////////////////////////////
+/** 
+*   created on 2021.7.31
+*   @ref:https://www.jianshu.com/p/16b015be4a48
+*
+*   结构化绑定
+**/
 
+int main4()
+{
+    int a[2] = {1, 2};
+    auto [x, y] = a;
+    auto &[xr, yr] = a; //
+    std::cout << x << " " << y << std::endl;
+    xr = 5;
+    std::cout << a[0] << " " << a[1] << std::endl;
+    return 0;
+}
+
+/* 分析下这段代码例子：
+    int a[2] = { 1, 2 };
+        我们给一个有两个元素的数组赋值。
+    
+    auto [x, y] = a;
+        将这个数组的两个元素的值分别赋值给x，y。
+    
+    auto& [xr, yr] = a;
+        xr为a[0]的引用，yr为a[1]的引用。
+			
+    其中，auto [x, y] = a; auto& [xr, yr] = a;
+    就是我们这次要讲的结构化绑定（structured binding）
+    
+    上面的例子改一下，一个比较完整的结构化绑定的表达式应该为
+        [[maybe_unused]] const auto& [xr, yr] = a;
+
+
+*/
 
 ////////////////////////////////////////////////////
 /** 
@@ -29,8 +65,8 @@ void run(int n)
 
 #include <future>
 
-int main()
-{   
+int main3()
+{
     // 这里开启两个线程
     /* thread t1(run, 1); // 第二个参数表示函数run里的参数（实参到形参的过程）
     thread t2(run, 2);
@@ -39,16 +75,18 @@ int main()
     // 很明显t1t2执行顺序会相互影响（线程加塞）
 
     /**************************/
-    // a. 
-    
+    // a.
+
     /**************************/
-    // b. 
+    // b.
     void run3();
     vector<thread> threads;
-    for(int i = 0; i < 20; i ++ ) {
+    for (int i = 0; i < 20; i++)
+    {
         threads.emplace_back(run3);
     }
-    for (auto& t: threads) {
+    for (auto &t : threads)
+    {
         t.join();
     }
     /* 
@@ -56,9 +94,8 @@ int main()
         本例中，如果持有锁打印“*”号，不持有则打印“x”号。那么启动50个线程运行时，大多数情况下都持有锁，但是也存在打印“x”号的情况。
     */
 
-
     /**************************/
-    // c. 
+    // c.
     void runa();
     void runb();
     thread t3(runa);
@@ -66,9 +103,8 @@ int main()
     t3.join();
     t4.join();
 
-
     /**************************/
-    
+
     // 质数判定服务
     // 11首先将判定服务置于一独立线程中，
     // 22然后利用request方法将一个整数传入质数判定服务，返回一个future，即判断结果是否为质数
@@ -78,13 +114,13 @@ int main()
 
     int n0 = 13524415;
     int n1 = 12343533;
-    
+
     future<bool> request(int);
     future<bool> r0 = request(n0);
     future<bool> r1 = request(n1);
 
     // 33
-    cout << n0 << ":" << boolalpha << r0.get() << endl; 
+    cout << n0 << ":" << boolalpha << r0.get() << endl;
     cout << n0 << ":" << boolalpha << r0.get() << endl;
 
     // 44
@@ -118,12 +154,13 @@ void run2(int n)
     for (int i = 0; i < 5; ++i)
     {
         lock_guard<mutex> lo(m);
-//        unique_lock<mutex> lo(m); // call constructor::unique_lock(mutex_type&), 持有mutex并上锁
+        //        unique_lock<mutex> lo(m); // call constructor::unique_lock(mutex_type&), 持有mutex并上锁
         cout << "thread" << n << '\n';
     }
 }
 // 如果该mutex是timed_mutex，可以持有该mutex并尝试上锁一段时间，或者尝试上锁到某个时间点。具体使用方法如下：
-void run3() {
+void run3()
+{
     unique_lock<mutex> ulck(m, try_to_lock);
     cout << (ulck.owns_lock() ? '*' : 'x');
 }
@@ -135,24 +172,25 @@ void run3() {
 mutex mtx;
 condition_variable cv;
 
-void runa() {
+void runa()
+{
     unique_lock<mutex> ul(mtx);
-    cout << "Waiting" << endl;  
+    cout << "Waiting" << endl;
     cv.wait(ul);
     cout << "Wake up" << endl;
 }
 
-void runb() {
+void runb()
 {
-    lock_guard<mutex> ul(mtx);
-    cout << "Notify" << endl;
-}
+    {
+        lock_guard<mutex> ul(mtx);
+        cout << "Notify" << endl;
+    }
     cv.notify_one();
 }
 
 // d. Semaphore
 // Condition variable的一个用法是实现信号量。信号量（semaphore）是一种同步机制，但在C++11中并没有原生提供该机制，那么就需要自己去实现。
-
 
 /*******************************************************************/
 // 高级同步原语：future (构造方式：async/packaged_task/promise
@@ -160,7 +198,8 @@ void runb() {
 // 有时某项工作很早就可以开始做（前置条件都已完备），而等待这件工作结果的任务在非常靠后的位置，这时候就需要async。
 // 换言之，如果可以尽早开始做一件事，就让其在后台运行即可，或快或慢都可以，只需在需要结果的时候运行完成就好。例如：
 
-int FinalAns() {
+int FinalAns()
+{
     cout << __func__ << " is running" << endl;
 
     this_thread::sleep_for(chrono::seconds(1));
@@ -169,7 +208,8 @@ int FinalAns() {
     return 42;
 }
 
-int main3() {
+int main3()
+{
     future<int> lazyAns = async(launch::async, FinalAns);
     this_thread::sleep_for(chrono::microseconds(100));
     cout << __func__ << " is running." << endl;
@@ -178,7 +218,6 @@ int main3() {
     return 0;
 }
 
-
 /*******************************************************************/
 // 质数判定服务
 
@@ -186,12 +225,30 @@ int main3() {
 deque<tuple<promise<bool>, int>> reqs;
 condition_variable cv1;
 
-void prime_service() {
+#include <math.h>
+bool is_prime(int n)
+{
+    if (n == 1)
+        return false;
+    bool sign = true;
+    for (int i = 2; i <= sqrt(n); i++) //是<=,不要忘记等号
+    {
+        if (n % i == 0)
+        {
+            sign = false;
+            break;
+        }
+    }
+    return sign;
+}
+void prime_service()
+{
     while (1)
     {
         /* code */
         unique_lock<mutex> lck(mtx);
-        for(; reqs.empty(); ) {
+        for (; reqs.empty();)
+        {
             cv1.wait(lck);
         }
         promise<bool> res;
@@ -199,16 +256,17 @@ void prime_service() {
 
         tie(res, n) = move(reqs.front());
         reqs.pop_front();
-        if (n == 0) break;
+        if (n == 0)
+            break;
         res.set_value(is_prime(n));
     }
-    
 }
 
-future<bool> request(int x) {
+future<bool> request(int x)
+{
     promise<bool> pm;
     future<bool> res = pm.get_future();
-    { 
+    {
         lock_guard<mutex> lck(mtx);
         reqs.emplace_back(move(pm), x);
     }
@@ -265,7 +323,7 @@ int main2()
     auto d = {1, 2}; // OK：d 的类型是 std::initializer_list<int>
     auto n = {5};    // OK：n 的类型是 std::initializer_list<int>
     //  auto e{1, 2};    // C++17 起错误，之前是 std::initializer_list<int>
-    auto m{5};       // OK：DR N3922 起 m 的类型是 int，之前是 initializer_list<int>
+    auto m{5}; // OK：DR N3922 起 m 的类型是 int，之前是 initializer_list<int>
     //  decltype(auto) z = { 1, 2 } // 错误：{1, 2} 不是表达式
 
     // auto 常用于无名类型，例如 lambda 表达式的类型
@@ -275,10 +333,8 @@ int main2()
     //  auto int x; // 于 C++98 合法，C++11 起错误
     //  auto x;     // 于 C 合法，于 C++ 错误
 
-
     return 0;
 }
-
 
 ///////////////////////////////////////////////////////////////////////
 
