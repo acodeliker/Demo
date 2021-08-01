@@ -5,6 +5,67 @@
 #include <iostream>
 using namespace std;
 
+/**
+ *  created on 2021.8.1
+ *  @ref:https://cloud.tencent.com/developer/article/1099957
+ * 
+ *  智能指针
+ **/
+
+// 背景： 防止某种资源遗失的常见办法就是捕捉所有异常，例如：
+class classA
+{
+public:
+    classA(int n) : num(n)
+    {
+    }
+
+private:
+    int num;
+};
+
+void f()
+{
+    classA *ptr = new classA(1); // create an object explicitly
+    try
+    {
+        // perform some operations
+    }
+    catch (...)
+    {
+        delete ptr; //-clean up
+        throw;      //-rethrow the exception
+    }
+
+    /*
+    	为了更容易（同时也更安全的管理）的使用动态内存，
+
+        新的标准库（C++11）提供了两种智能指针（smart pointer）类类型来管理动态对象。它负责自动释放所指向的对象。
+    */
+
+    // 举个例子：shared_ptr 提供swap()成员函数,用来交换两个相同类型的对象,比如:
+    //shared_ptr<classA> p1(new classA(1));
+    //shared_ptr<classA> p2(new classA(2));
+    shared_ptr<int> p1(new int(1));
+    shared_ptr<int> p2(new int(2));
+    p1.swap(p2);         //交换后 p1=2,p2=1
+    cout << *p1 << endl; //打印 2
+    cout << *p2 << endl; //打印 1
+    delete ptr;          // clean up(destory the object explicitly)
+
+    // 再举个例子： shared_ptr 也提供use_count()成员函数,可以用来查看引用计数个数,比如:
+    shared_ptr<int> sp1(new int(30)); //计数+1
+    cout << sp1.use_count() << endl;  //打印计数:1
+    cout << sp1.unique() << endl;     //打印:1
+    shared_ptr<int> sp2(sp1);         //计数+1
+    cout << sp1.use_count() << endl;  //打印:2
+    cout << sp1.unique() << endl;     //由于sp1指针对象被sp2引用,打印:0
+    sp1.reset();                      //将sp1指针对象地址设为NULL,计数-1
+    cout << sp1.get() << endl;        //sp1指针对象地址为NULL,打印:0
+    cout << sp2.use_count() << endl;  //打印:1
+    cout << sp2.unique() << endl;     //由于sp1释放,仅剩下sp2指向30所在的地址,所以打印:1
+}
+
 /////////////////////////////////////////////////////
 /** 
 *   created on 2021.7.31
