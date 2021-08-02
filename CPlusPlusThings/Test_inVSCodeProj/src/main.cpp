@@ -6,6 +6,109 @@
 using namespace std;
 
 /**
+ * created on 2021.8.2
+ * @ref:
+ * 
+ * RAII机制
+ **/
+
+//	i. 在使用多线程时，经常会涉及到共享数据的问题：
+template <class... _Mutexes>
+class lock_guard
+{ // class with destructor that unlocks mutexes
+public:
+    explicit lock_guard(_Mutexes &..._Mtxes)
+        : _MyMutexes(_Mtxes...)
+    { // construct and lock
+        _STD lock(_Mtxes...);
+    }
+
+    lock_guard(_Mutexes &..._Mtxes, adopt_lock_t)
+        : _MyMutexes(_Mtxes...)
+    { // construct but don't lock
+    }
+
+    ~lock_guard() _NOEXCEPT
+    { // unlock all
+        _For_each_tuple_element(
+            _MyMutexes,
+            [](auto &_Mutex) _NOEXCEPT
+            { _Mutex.unlock(); });
+    }
+
+    lock_guard(const lock_guard &) = delete;
+    lock_guard &operator=(const lock_guard &) = delete;
+
+private:
+    tuple<_Mutexes &...> _MyMutexes;
+};
+
+/*  C++中通过实例化std::mutex创建互斥量，通过调用成员函数lock()进行上锁，unlock()进行解锁。
+	不过这意味着必须记住在每个函数出口都要去调用unlock()，也包括异常的情况，这非常麻烦，而且不易管理。
+	C++标准库为互斥量提供了一个RAII语法的模板类std::lock_guard，其会在构造函数的时候提供已锁的互斥量，并在析构的时候进行解锁，从而保证了一个已锁的互斥量总是会被正确的解锁。
+    上面的代码正是<mutex>>头文件中的源码，其中还使用到很多C++11的特性
+*/
+
+// ii. 下面说一个具有实际意义的例子：
+#include <iostream>
+#include <windows.h>
+#include <process.h>
+using namespace std;
+CRITICAL_SECTION cs;
+int gGlobal = 0;
+class MyLock
+{
+public:
+    MyLock()
+    {
+        EnterCriticalSection(&cs);
+    }
+    ~MyLock()
+    {
+        LeaveCriticalSection(&cs);
+    }
+
+private:
+    MyLock(const MyLock &);
+    MyLock operator=(const MyLock &);
+};
+void DoComplex(MyLock &lock) // 非常感谢益可达犀利的review 2014.04.13
+{
+}
+unsigned int __stdcall ThreadFun(PVOID pv)
+{
+    MyLock lock;
+    int *para = (int *)pv;
+    // I need the lock to do some complex thing
+    DoComplex(lock);
+    for (int i = 0; i < 10; ++i)
+    {
+        ++gGlobal;
+        cout << "Thread " << *para << endl;
+        cout << gGlobal << endl;
+    }
+    return 0;
+}
+int main()
+{
+    InitializeCriticalSection(&cs);
+    int thread1, thread2;
+    thread1 = 1;
+    thread2 = 2;
+    HANDLE handle[2];
+    handle[0] = (HANDLE)_beginthreadex(NULL, 0, ThreadFun, (void *)&thread1, 0, NULL);
+    handle[1] = (HANDLE)_beginthreadex(NULL, 0, ThreadFun, (void *)&thread2, 0, NULL);
+    WaitForMultipleObjects(2, handle, TRUE, INFINITE);
+    return 0;
+}
+/*	这个例子可以说是实际项目的一个模型，
+	当多个进程访问临界变量时，为了不出现错误的情况，需要对临界变量进行加锁；上面的例子就是使用的Windows的临界区域实现的加锁。			
+	但是，在使用CRITICAL_SECTION时，EnterCriticalSection和LeaveCriticalSection必须成对使用，很多时候，经常会忘了调用LeaveCriticalSection，此时就会发生死锁的现象。
+    当我将对CRITICAL_SECTION的访问封装到MyLock类中时，之后，我只需要定义一个MyLock变量，而不必手动的去显示调用LeaveCriticalSection函数。
+*/
+
+/////////////////////////////////////////////////////////
+/**
  *  created on 2021.8.1
  *  @ref:https://cloud.tencent.com/developer/article/1099957
  * 
