@@ -1,9 +1,65 @@
+#include <iostream>
 
-#include "Circle.hpp"
 #include "Features.hpp"
 
-#include <iostream>
+
 using namespace std;
+
+
+/**
+ *  created on 2021.8.7
+ *  @ref: https://www.cnblogs.com/whlook/p/6573659.html
+ * 
+ *  std::thread 简单使用
+ **/
+/// 该如何保证子线程执行完了退出后再退出主线程呢？  thread::join(): join的作用是让主线程等待直到该子线程执行结束，示例：
+
+#include <iostream>
+#include <thread>
+using namespace std;
+
+void t1()
+{
+    for (int i = 0; i < 20; ++i)
+    {
+        cout << "t1111\n";
+    }
+}
+void t2()
+{
+    for (int i = 0; i < 20; ++i)
+    {
+        cout << "t22222\n";
+    }
+}
+int main()
+{
+    thread th1(t1);
+    thread th2(t2);
+    
+    th1.join(); //等待th1执行完  需要注意的是线程对象执行了join后就不再joinable了，所以只能调用join一次。
+    th2.join(); //等待th2执行完
+
+    cout << "here is main\n\n";
+
+    return 0;
+}
+
+/// thread::detach(): 还可以使用detach来解决，detach是用来和线程对象分离的，这样线程可以独立地执行，不过这样由于没有thread对象指向该线程而失去了对它的控制，
+// 当对象析构时线程会继续在后台执行，但是当主程序退出时并不能保证线程能执行完。如果没有良好的控制机制或者这种后台线程比较重要，最好不用detach而应该使用join。
+
+int main10()
+{
+    thread th1(t1);
+    thread th2(t2);
+    
+    th1.detach();
+    th2.detach();
+
+    cout << "here is main10\n\n";
+
+    return 0;
+}
 
 /**
  *  created on 2021.8.5
@@ -34,7 +90,7 @@ using namespace std;
 #include <iostream>
 #include <vector>
 using namespace std;
-int main() {
+int main9() {
     char arc[] = "http://c.biancheng.net/cplus/11/";
     //for循环遍历普通数组
     for (char ch : arc) {
@@ -387,6 +443,7 @@ void run(int n)
 }
 
 #include <future>
+#include <vector>
 
 int main3()
 {
@@ -452,7 +509,6 @@ int main3()
 
     return 0;
 }
-#include <vector>
 
 // 改进（添加基础同步原语），如
 // a.加入mutex
@@ -660,6 +716,10 @@ int main2()
 }
 
 ///////////////////////////////////////////////////////////////////////
+
+#include "Circle.hpp"
+
+
 
 double Foo3_1::z = 1.0;
 int main1()
