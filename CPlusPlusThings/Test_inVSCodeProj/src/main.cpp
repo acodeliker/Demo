@@ -14,9 +14,7 @@ using namespace std;
  **/
 /// 该如何保证子线程执行完了退出后再退出主线程呢？  thread::join(): join的作用是让主线程等待直到该子线程执行结束，示例：
 
-#include <iostream>
 #include <thread>
-using namespace std;
 
 void t1()
 {
@@ -87,9 +85,7 @@ int main10()
 
 // 下面程序演示了如何用 C++ 11 标准中的 for 循环遍历实例一定义的 arc 数组和 myvector 容器：
 
-#include <iostream>
 #include <vector>
-using namespace std;
 int main9() {
     char arc[] = "http://c.biancheng.net/cplus/11/";
     //for循环遍历普通数组
@@ -117,9 +113,6 @@ int main9() {
 */
 
 // 另外值得一提的是，在使用新语法格式的 for 循环遍历某个序列时，如果需要遍历的同时修改序列中元素的值，实现方案是在 declaration 参数处定义引用形式的变量。举个例子：
-#include <iostream>
-#include <vector>
-using namespace std;
 int main8() {
     char arc[] = "abcde";
     vector<char>myvector(arc, arc + 5);
@@ -188,13 +181,10 @@ int main7()
 // 绑定一个引用参数
 // 默认情况下，bind的那些不是占位符的参数被拷贝到bind返回的可调用对象中。但是，与lambda类似，有时对有些绑定的参数希望以引用的方式传递，或是要绑定参数的类型无法拷贝。
 
-#include <iostream>
 #include <functional>
-#include <vector>
 #include <algorithm>
 #include <sstream>
 using namespace std::placeholders;
-using namespace std;
 
 ostream &print(ostream &os, const string &s, char c)
 {
@@ -265,10 +255,8 @@ private:
 */
 
 // ii. 下面说一个具有实际意义的例子：
-#include <iostream>
-#include <windows.h>
+//#include <windows.h>
 #include <process.h>
-using namespace std;
 CRITICAL_SECTION cs;
 int gGlobal = 0;
 class MyLock
