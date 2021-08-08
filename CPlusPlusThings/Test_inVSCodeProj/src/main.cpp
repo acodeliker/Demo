@@ -2,9 +2,68 @@
 
 #include "Features.hpp"
 
-
 using namespace std;
+/**
+ *  created on 2021.8.8
+ *  @ref:https://www.jianshu.com/p/8df45004bbcb
+ * 
+ *  thread_local
+ **/
 
+/*
+    thread_local修饰的变量具有如下特性:
+
+    1变量在线程创建时生成(不同编译器实现略有差异，但在线程内变量第一次使用前必然已构造完毕)。
+    2线程结束时被销毁(析构，利用析构特性，thread_local变量可以感知线程销毁事件)。   
+    3每个线程都拥有其自己的变量副本。
+    4thread_local可以和static或extern联合使用，这将会影响变量的链接属性。
+*/
+
+//下面代码演示了thread_local变量在线程中的生命周期
+// thread_local.cpp
+class A
+{
+public:
+    A()
+    {
+        std::cout << std::this_thread::get_id()
+                  << " " << __FUNCTION__
+                  << "(" << (void *)this << ")"
+                  << std::endl;
+    }
+
+    ~A()
+    {
+        std::cout << std::this_thread::get_id()
+                  << " " << __FUNCTION__
+                  << "(" << (void *)this << ")"
+                  << std::endl;
+    }
+
+    // 线程中，第一次使用前初始化
+    void doSth()
+    {
+    }
+};
+
+thread_local A a;
+
+int main()
+{
+    a.doSth();
+    std::thread t([]()
+                  {
+                      std::cout << "Thread: "
+                                << std::this_thread::get_id()
+                                << " entered" << std::endl;
+                      a.doSth();
+                  });
+
+    t.join();
+    // 变量a在main线程和t线程中分别保留了一份副本
+
+    return 0;
+}
 
 /**
  *  created on 2021.8.7
@@ -30,11 +89,11 @@ void t2()
         cout << "t22222\n";
     }
 }
-int main()
+int main11()
 {
     thread th1(t1);
     thread th2(t2);
-    
+
     th1.join(); //等待th1执行完  需要注意的是线程对象执行了join后就不再joinable了，所以只能调用join一次。
     th2.join(); //等待th2执行完
 
@@ -50,7 +109,7 @@ int main10()
 {
     thread th1(t1);
     thread th2(t2);
-    
+
     th1.detach();
     th2.detach();
 
@@ -65,7 +124,6 @@ int main10()
  * 
  *  for-each based on range
  **/
-
 
 /*
     C++ 11 标准中，除了可以沿用前面介绍的用法外，还为 for 循环添加了一种全新的语法格式，如下所示：
@@ -86,16 +144,19 @@ int main10()
 // 下面程序演示了如何用 C++ 11 标准中的 for 循环遍历实例一定义的 arc 数组和 myvector 容器：
 
 #include <vector>
-int main9() {
+int main9()
+{
     char arc[] = "http://c.biancheng.net/cplus/11/";
     //for循环遍历普通数组
-    for (char ch : arc) {
+    for (char ch : arc)
+    {
         cout << ch;
     }
     cout << '!' << endl;
-    vector<char>myvector(arc, arc + 23);
+    vector<char> myvector(arc, arc + 23);
     //for循环遍历 vector 容器
-    for (auto ch : myvector) {
+    for (auto ch : myvector)
+    {
         cout << ch;
     }
     cout << '!';
@@ -113,15 +174,18 @@ int main9() {
 */
 
 // 另外值得一提的是，在使用新语法格式的 for 循环遍历某个序列时，如果需要遍历的同时修改序列中元素的值，实现方案是在 declaration 参数处定义引用形式的变量。举个例子：
-int main8() {
+int main8()
+{
     char arc[] = "abcde";
-    vector<char>myvector(arc, arc + 5);
+    vector<char> myvector(arc, arc + 5);
     //for循环遍历并修改容器中各个字符的值
-    for (auto &ch : myvector) {
+    for (auto &ch : myvector)
+    {
         ch++;
     }
     //for循环遍历输出容器中各个字符
-    for (auto ch : myvector) {
+    for (auto ch : myvector)
+    {
         cout << ch;
     }
     return 0;
@@ -706,8 +770,6 @@ int main2()
 ///////////////////////////////////////////////////////////////////////
 
 #include "Circle.hpp"
-
-
 
 double Foo3_1::z = 1.0;
 int main1()
